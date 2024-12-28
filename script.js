@@ -163,65 +163,41 @@ async function handleInput(input, step) {
 }
 
 async function sendToClaude() {
-   const currentDate = new Date().toLocaleDateString('en-US', { 
-       month: 'long', 
-       day: 'numeric', 
-       year: 'numeric' 
-   });
+    const currentDate = new Date().toLocaleDateString('en-US', { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric' 
+    });
 
-   try {
-       const response = await fetch('https://backend-cover-letter-api123-git-main-suhaibs-projects-c70a31e8.vercel.app/api/generate-cover-letter', {
-           method: 'POST',
-           mode: 'cors',
-           headers: { 
-               'Content-Type': 'application/json'
-           },
-           body: JSON.stringify({
-               prompt: `Create a cover letter in this EXACT format:
+    try {
+        const response = await fetch('https://backend-cover-letter-api123-git-main-suhaibs-projects-c70a31e8.vercel.app/api/generate-cover-letter', {
+            method: 'POST',
+            mode: 'cors',
+            credentials: 'omit',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Origin': 'https://suhaibk137.github.io'
+            },
+            body: JSON.stringify({
+                prompt: `Create a cover letter in this EXACT format:
+                // ... rest of your prompt ...`
+            })
+        });
 
-${currentDate}
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`API Error: ${response.status} - ${errorData}`);
+        }
 
-COVER LETTER
-
-Dear Hiring Manager,
-
-[Generate three clear, impactful paragraphs:
-1. Introduction mentioning the specific role and company, showing enthusiasm
-2. Core qualifications and achievements that match the job requirements
-3. Closing with a call to action requesting an interview]
-
-Best regards,
-${formData.name}
-${formData.email}
-
-Using:
-Role: ${formData.role}
-Resume Details: ${formData.resume.content}
-Job Requirements: ${formData.jobDescription?.content || 'Not provided'}
-
-Format Guidelines:
-- Professional business letter format
-- Maximum 400 words
-- Convert bullet points to flowing paragraphs
-- Highlight 2-3 most relevant achievements
-- Use active voice and confident tone`
-           })
-       });
-
-       if (!response.ok) {
-           throw new Error(`API Error: ${response.status}`);
-       }
-
-       const data = await response.json();
-       if (!data || !data.content || !data.content[0] || !data.content[0].text) {
-           throw new Error('Invalid response format from API');
-       }
-       return data.content[0].text;
-   } catch (error) {
-       console.error('API Request failed:', error);
-       throw new Error('Failed to generate cover letter. Please try again.');
-   }
+        const data = await response.json();
+        return data.content[0].text;
+    } catch (error) {
+        console.error('API Request failed:', error);
+        throw error;
+    }
 }
+  
+
 
 async function handleSubmission() {
    const messages = document.getElementById('chatMessages');
