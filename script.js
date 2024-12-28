@@ -53,7 +53,7 @@ async function extractTextFromFile(file) {
 }
 
 function startChat() {
-   document.getElementById('startScreen').style.display = 'none';
+   document.querySelector('.cover-letter-header').style.display = 'none';
    document.getElementById('chatContainer').style.display = 'block';
    showNextMessage();
 }
@@ -147,7 +147,6 @@ async function handleInput(input, step) {
    }
 
    formData[step.field] = value;
-   console.log('Updated formData:', formData);
    
    const displayText = step.type === 'file' ? 
        (value ? value.fileName : 'No file selected') : 
@@ -170,11 +169,15 @@ async function sendToClaude() {
        year: 'numeric' 
    });
 
-   const response = await fetch('https://backend-of-cover-letter.vercel.app/api/generate-cover-letter', {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({
-           prompt: `Create a cover letter in this EXACT format:
+   try {
+       const response = await fetch('https://backend-cover-letter-api123-git-main-suhaibs-projects-c70a31e8.vercel.app/api/generate-cover-letter', {
+           method: 'POST',
+           mode: 'cors',
+           headers: { 
+               'Content-Type': 'application/json'
+           },
+           body: JSON.stringify({
+               prompt: `Create a cover letter in this EXACT format:
 
 ${currentDate}
 
@@ -202,15 +205,22 @@ Format Guidelines:
 - Convert bullet points to flowing paragraphs
 - Highlight 2-3 most relevant achievements
 - Use active voice and confident tone`
-       })
-   });
+           })
+       });
 
-   if (!response.ok) {
-       throw new Error(`API Error: ${response.status}`);
+       if (!response.ok) {
+           throw new Error(`API Error: ${response.status}`);
+       }
+
+       const data = await response.json();
+       if (!data || !data.content || !data.content[0] || !data.content[0].text) {
+           throw new Error('Invalid response format from API');
+       }
+       return data.content[0].text;
+   } catch (error) {
+       console.error('API Request failed:', error);
+       throw new Error('Failed to generate cover letter. Please try again.');
    }
-
-   const data = await response.json();
-   return data.content[0].text;
 }
 
 async function handleSubmission() {
@@ -235,9 +245,9 @@ async function handleSubmission() {
        messages.appendChild(coverLetterDiv);
        loadingMsg.remove();
    } catch (error) {
-       console.error('API Error:', error);
+       console.error('Error in handleSubmission:', error);
        loadingMsg.remove();
-       messages.appendChild(createMessage("Error generating cover letter"));
+       messages.appendChild(createMessage(error.message || "Error generating cover letter. Please try again."));
    }
 }
 
@@ -252,75 +262,33 @@ function downloadPDF(content) {
    doc.text(splitText, 15, 15);
    doc.save('cover_letter.pdf');
 }
-// Error handling functions
-function handleError(error, message = "An error occurred") {
-    console.error(error);
-    return message;
- }
- 
- // Utility functions
- function validateEmail(email) {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
- }
- 
- function validateFileSize(file, maxSize = 5242880) {
-    return file.size <= maxSize;
- }
- 
- // PDF formatting utilities
- function formatPDFContent(content) {
-    const margins = {
-        top: 25,
-        bottom: 25,
-        left: 25,
-        right: 25
-    };
-    
-    return {
-        content,
-        margins
-    };
- }
- 
- // Reset function
- function resetForm() {
-    formData = {};
-    currentStep = 0;
-    const messages = document.getElementById('chatMessages');
-    messages.innerHTML = '';
-    localStorage.removeItem('chatFormData');
-    document.getElementById('startScreen').style.display = 'block';
-    document.getElementById('chatContainer').style.display = 'none';
- }
- 
- // Browser compatibility check
- function checkCompatibility() {
-    const features = [
-        window.File,
-        window.FileReader,
-        window.FileList,
-        window.Blob,
-        window.fetch
-    ];
-    
-    return features.every(Boolean);
- }
- 
- // Initialize
- window.addEventListener('load', () => {
-    if (!checkCompatibility()) {
-        alert('Your browser may not support all features. Please use a modern browser.');
-    }
-    
-    // Restore data if exists
-    const savedData = localStorage.getItem('chatFormData');
-    if (savedData) {
-        formData = JSON.parse(savedData);
-    }
- });
- 
- // Error handler for file operations
- window.addEventListener('error', function(e) {
-    console.error('File operation error:', e);
-    return false;
- });
+
+function validateEmail(email) {
+   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validateFileSize(file, maxSize = 5242880) {
+   return file.size <= maxSize;
+}
+
+function resetForm() {
+   formData = {};
+   currentStep = 0;
+   const messages = document.getElementById('chatMessages');
+   messages.innerHTML = '';
+   localStorage.removeItem('chatFormData');
+   document.querySelector('.cover-letter-header').style.display = 'block';
+   document.getElementById('chatContainer').style.display = 'none';
+}
+
+window.addEventListener('load', () => {
+   const savedData = localStorage.getItem('chatFormData');
+   if (savedData) {
+       formData = JSON.parse(savedData);
+   }
+});
+
+window.addEventListener('error', function(e) {
+   console.error('File operation error:', e);
+   return false;
+});
